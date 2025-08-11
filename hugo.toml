@@ -1,0 +1,8 @@
+baseURL = 'https://blog.newman.digital'
+languageCode = 'en-gb'
+title = 'The Long View'
+theme = 'PaperMod'
+
+[params]
+  description = "Opinions and thoughts on various topics formed over a 25 year career in tech"
+  author = "Stephen Newman"
