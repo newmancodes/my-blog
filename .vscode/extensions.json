@@ -1,5 +1,6 @@
 {
     "recommendations": [
-        "budparr.language-hugo-vscode"
+        "budparr.language-hugo-vscode",
+        "ban.spellright"
     ]
 }
