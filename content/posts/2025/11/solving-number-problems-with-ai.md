@@ -30,62 +30,7 @@ When confronted with a scenario which has an initial state of the "world", a goa
 
 For our number round solver, where a simple "distance to goal" heuristic isn't readily available, we'll use an uninformed search algorithm. As we'd like to find the "best" solution, where best is taken to mean the solution which takes the fewest computations, specifically the Breadth First Search algorithm. To illustrate this, let's consider a simplified version of the numbers game. We'll set the constraints such that the initial state contains only three numbers and that only addition and multiplication are allowed. We'll set the target as being 30 and the numbers being 3, 4, and 6.
 
-```mermaid
-graph TD
-    A[3, 4, 6] -->|3+4=7| B[6, 7]
-    A -->|3×4=12| C[6, 12]
-    A -->|3+6=9| D[4, 9]
-    A -->|3×6=18| E[4, 18]
-    A -->|4+6=10| F[3, 10]
-    A -->|4×6=24| G[3, 24]
-
-    B -->|6+7=13| H[13]
-    B -->|6×7=42| I[42]
-
-    C -->|6+12=18| J[18]
-    C -->|6×12=72| K[72]
-
-    D -->|4+9=13| L[13]
-    D -->|4×9=36| M[36]
-
-    E -->|4+18=22| N[22]
-    E -->|4×18=72| O[72]
-    
-    F -->|3+10=13| P[13]
-    F -->|3×10=30| Q[30 - Goal Found!]
-
-    G -->|4+24=28| R[28]
-    G -->|3×24=72| S[72]
-    
-    %% Style the exploration order
-    A:::level0
-    B:::level1
-    C:::level1
-    D:::level1
-    E:::level1
-    F:::level1
-    G:::level1
-    H:::level2
-    I:::level2
-    J:::level2
-    K:::level2
-    L:::level2
-    M:::level2
-    N:::level2
-    O:::level2
-    P:::level2
-    Q:::goal
-    
-    %% Not yet explored
-    R:::unvisited
-    S:::unvisited
-    
-    classDef level0 fill:#FF6B6B,stroke:#CC0000,stroke-width:2px
-    classDef level1 fill:#4ECDC4,stroke:#008B8B,stroke-width:2px
-    classDef level2 fill:#45B7D1,stroke:#0066CC,stroke-width:2px
-    classDef goal fill:#FFD700,stroke:#FF8C00,stroke-width:3px
-    classDef unvisited fill:#F0F0F0,stroke:#808080,stroke-width:1px
-```
+![Number Problem Breadth First Search Example](/posts/2025/11/number_problem_bfs_example.png)
 
 This tree structure illustrates the search space of the constrained problem. It contains the nodes (with the numbers available) and the edges describe the operation performed. Note: that many of the operation chains find paths to the same numbers (13, and 72). This is because both the addition and multiplication operators are [commutative](https://en.wikipedia.org/wiki/Commutative_property) so regardless if we add 3+4+6 or 3+6+4 or 4+6+3, we end up with 13. In all likelihood, we would only continue evaluating the next node if it had already been considered, or if it is already present in the collection of nodes to be considered. Nodes which have already been considered are said to have been explored. Nodes awaiting consideration are part of the frontier. In this diagram the two nodes coloured in grey are the frontier, but as we've found our goal of 30 we'll stop processing the frontier and yield the solution.
 
