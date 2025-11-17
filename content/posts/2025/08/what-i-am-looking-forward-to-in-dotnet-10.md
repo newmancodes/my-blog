@@ -2,7 +2,7 @@
 date = '2025-08-14T09:15:00+01:00'
 draft = false
 title = 'What I am Looking Forward to in .NET 10'
-tags = ['programming', 'dotnet']
+tags = ['programming', '.net']
 +++
 
 Another November is almost upon us, and that means we get a new release of .NET! This year is an odd year, that is to say `DateTime.UtcNow.Year % 2 == 1`, so we know it's a Long Term Support (LTS) release. That means three years of support giving organisations more confidence in shifting to it. On the flip side, we have one year to get off .NET 8 (the previous LTS release) and only six months to get off .NET 9 (the previous Standard Term Support or STS release).
