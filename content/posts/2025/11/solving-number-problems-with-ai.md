@@ -604,7 +604,7 @@ The solution steps to solve the problem are shown below.
 | 2, 3, 3, 5, 6, 75 | 6, 2 | - | 4 | 3, 3, 4, 5, 75 |
 | 3, 3, 4, 5, 75 | 75, 5 | - | 70 | 3, 3, 4, 70 |
 | 3, 3, 4, 70 | 4, 70 | × | 280 | 3, 3, 280 |
-| 3, 3, 280 | 280, 3 | - | 277 | 277 |
+| 3, 3, 280 | 280, 3 | - | 277 | 3, 277 |
 
 This was the first solution that was found, other solutions may exists and while others may take the same or more number of steps, no solution exists that takes fewer steps.
 ```
