@@ -101,6 +101,12 @@ public class DepthFirstSearch<TState, TStateTraversalDescription> : ISearch<TSta
 }
 ```
 
+As there aren't too many changes, let's briefly discuss them:
 
+- The `_frontier` field is now an instance of `Stack<StateTraversal<TState, TStateTraversalDescription>>`
+  - We use `.Push` to add new state traversals onto the frontier
+  - We use `.TryPop` when attempting to extract the next state traversal to process from the frontier
+
+That's it, that's all we need to change to move from Breadth First to Depth First. Let's explore this with the help of some diagrams.
 
 69 for the DFS
