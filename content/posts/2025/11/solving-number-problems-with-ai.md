@@ -1,5 +1,5 @@
 +++
-date = '2025-11-30T23:30:00+00:00'
+date = '2025-11-17T00:00:00+00:00'
 draft = false
 title = 'Solving Number Problems with Artificial Intelligence'
 tags = ['programming', '.net', 'artificial intelligence']

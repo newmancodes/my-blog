@@ -1,5 +1,5 @@
 +++
-date = '2025-11-19T08:07:44Z'
+date = '2025-11-30T00:00:00+00:00'
 draft = true
 title = 'Exploring Depth First Search'
 tags = ['programming', '.net', 'artificial intelligence']
