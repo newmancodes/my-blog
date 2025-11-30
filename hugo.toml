@@ -6,3 +6,4 @@ theme = 'PaperMod'
 [params]
   description = "A blog exploring emerging technologies and career development for software professionals who want to stay ahead without getting caught up in every passing trend. Drawing from 25 years of hands-on experience across diverse industries, I examine what's genuinely worth your attention over a range of tech stacks while sharing practical insights about building a sustainable career in tech."
   author = "Stephen Newman"
+  showReadingTime = true
