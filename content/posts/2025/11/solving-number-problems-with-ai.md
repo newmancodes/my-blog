@@ -1,5 +1,5 @@
 +++
-date = '2025-11-17T00:00:00+00:00'
+date = '2025-11-30T23:30:00+00:00'
 draft = false
 title = 'Solving Number Problems with Artificial Intelligence'
 tags = ['programming', '.net', 'artificial intelligence']
@@ -54,7 +54,7 @@ graph TD
     F -->|3+10=13| P[13]
     F -->|3×10=30| Q[30 - Goal Found!]
 
-    G -->|4+24=28| R[28]
+    G -->|3+24=27| R[27]
     G -->|3×24=72| S[72]
     
     %% Style the exploration order
@@ -89,7 +89,7 @@ graph TD
 
 This tree structure illustrates the search space of the constrained problem. It contains the nodes (with the numbers available) and the edges describe the operation performed. Note: that many of the operation chains find paths to the same numbers (13, and 72). This is because both the addition and multiplication operators are [commutative](https://en.wikipedia.org/wiki/Commutative_property) so regardless if we add 3+4+6 or 3+6+4 or 4+6+3, we end up with 13. In all likelihood, we would only continue evaluating the next node if it had already been considered, or if it is already present in the collection of nodes to be considered. Nodes which have already been considered are said to have been explored. Nodes awaiting consideration are part of the frontier. In this diagram the two nodes coloured in grey are the frontier, but as we've found our goal of 30 we'll stop processing the frontier and yield the solution.
 
-This method fully considers the frontier at a given level in the tree before considering the frontier at deeper levels. This is what makes this a breadth first search. The advantages of the breadth first search are that we can always find the optimal solution (in terms of operation count), but we do store more in memory. For the problem we are dealing with here, the search space is not excessively large or infinite. By contrast, a depth first search would operate via a LIFO data structure, this forces nodes to be considered towards leaf nodes. In the example above, this would mean that the two unvisited frontier nodes would not have been discovered. This save two nodes from existing in the frontier. This doesn't save a lot of consideration here, but if we mentally think about the unconstrained variant of the problem, with six numbers and four operations, we can quickly save many more nodes from being stored. Depth first searches are typically more efficient in terms of space complexity, but may not yield the optimal solution. An iterative depth first search can be used to limit the depth considered, this allows use to still benefit from depth first search but still find the optimal solution. Perhaps, an extension for the future.
+This method fully considers the frontier at a given level in the tree before considering the frontier at deeper levels. This is what makes this a breadth first search. The advantages of the breadth first search are that we can always find the optimal solution (in terms of operation count), but we do store more in memory. For the problem we are dealing with here, the search space is not excessively large or infinite. By contrast, a depth first search would operate via a LIFO data structure, this forces nodes to be considered towards leaf nodes. In the example above, this would mean that the two unvisited frontier nodes would not have been discovered. This saves two nodes from existing in the frontier. This doesn't save a lot of consideration here, but if we mentally think about the unconstrained variant of the problem, with six numbers and four operations, we can quickly save many more nodes from being stored. Depth first searches are typically more efficient in terms of space complexity, but may not yield the optimal solution. An iterative depth first search can be used to limit the depth considered, this allows use to still benefit from depth first search but still find the optimal solution. Perhaps, an extension for the future.
 
 Before we start implementing our solution, let us discuss the following pseudo-code outlining the algorithm.
 
@@ -129,7 +129,7 @@ Boards have a number of rules associated with them:
 - Each small number can appear 0, 1, or 2 times
 - Each large number can appear 0 or 1 times
 
-Let's start by creating some tests to record the behaviour we need when construction new boards. Below I have pulled in the scenarios, for the full detail take a look at the code available on [GitHub](https://github.com/newmancodes/mcp-experiments/blob/main/dotnet/tests/PuzzleSolver.NumbersGame.Test/BoardTests.cs).
+Let's start by creating some tests to record the behaviour we need when constructing new boards. Below I have pulled in the scenarios, for the full details take a look at the code available on [GitHub](https://github.com/newmancodes/mcp-experiments/blob/main/dotnet/tests/PuzzleSolver.NumbersGame.Test/BoardTests.cs).
 
 ```csharp
 [Theory]
@@ -271,7 +271,7 @@ public class Target
 
 ## Solving the Problem
 
-We are now in a position where can express the starting point (our `Board`) and our goal (the `Target`), but the real challenge is in the solving of the problem. How do we go from having these pieces and an idea of an algorithm to implement and get to a solution? What requirements do we have of a solution? I'd like to be able to not only say that the `Board` and `Target` combination have a solution but to also be able to describe that solution. This means we need some `Solver` which can return a result type which can describe the path through the search space which lead to a successful goal test.
+We are now in a position where we can express the starting point (our `Board`) and our goal (the `Target`), but the real challenge is in the solving of the problem. How do we go from having these pieces and an idea of an algorithm to implement and get to a solution? What requirements do we have of a solution? I'd like to be able to not only say that the `Board` and `Target` combination have a solution but to also be able to describe that solution. This means we need some `Solver` which can return a result type which can describe the path through the search space which lead to a successful goal test.
 
 ### A Word about State Traversal
 
@@ -291,7 +291,7 @@ public record MathematicalOperation(Number LeftOperand, Operator Operator, Numbe
 
 Why is this important? This matters because we would ideally like to be able to report back not only that a solution was found, but to also describe the solution step by step such that it can be understood and verified. Without tracking our path through the search space we won't be able to unravel the solution and report back how it was achieved.
 
-### Implementing Breath First Search
+### Implementing Breadth First Search
 
 We'll start by having a look at the constructor of our breadth first search solution:
 
