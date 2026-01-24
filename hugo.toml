@@ -7,3 +7,10 @@ theme = 'PaperMod'
   description = "A blog exploring emerging technologies and career development for software professionals who want to stay ahead without getting caught up in every passing trend. Drawing from 25 years of hands-on experience across diverse industries, I examine what's genuinely worth your attention over a range of tech stacks while sharing practical insights about building a sustainable career in tech."
   author = "Stephen Newman"
   showReadingTime = true
+
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      # Allow raw HTML in Markdown for trusted, author-written content (e.g. custom embeds/components).
+      # This is safe here because no untrusted user input is rendered as Markdown.
+      unsafe = true
