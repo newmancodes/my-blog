@@ -43,54 +43,71 @@ The Rust compiler can compile straight to WebAssembly when the wasm32_unknown_un
 
 My Azure setup is fairly simple, I maintain a single Subscription and I tend to deploy various elements into different resource groups for logical separation. I'll be using [Azure Deployment Stacks](https://learn.microsoft.com/en-us/training/modules/introduction-to-deployment-stacks/) for this project so that the only mechanism to make changes to my cloud infrastructure is via a deployment (using [Bicep](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/overview?tabs=bicep)), this prevents [configuration drift](https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/landing-zone/design-area/management-operational-compliance#monitor-for-configuration-drift), and also so I can easily tear down the infrastructure via an `az stack` command. If you want to learn more about Azure Deployment Stacks, John Savill posted a great [Deployment Stacks Deep Dive](https://youtu.be/d1AE8qLwBYw?si=2LJpwiXTFcFAqUv9) video to YouTube.
 
-When I configure my GitHub Actions based deployments to Azure I make use of the federation setup between GitHub and Azure, this means I don't need to worry about handling secrets which may expire. This allows my deployments to reliably work, whenever I want to trigger them. I start the process by creating a new App Registration using the Azure CLI.
-
-```bash
-appId=$(az ad app create --display-name countdown-solver-deployer --sign-in-audience AzureADMyOrg --query appId -o tsv)
-```
-
-This command creates a new App Registration within my tenant and populates the id of the new application into appId variable so I can use it in the following steps in the process. I then need to configure the federated credentials for my GitHub repo. This is a two step process, first I create a [json document](https://github.com/newmancodes/yew-countdown-solver/blob/main/deploy/credential.json) which describes the particulars about the federated credential. The most important part in this document is the `subject` value:
+When I configure my GitHub Actions based deployments to Azure I make use of the federation setup between GitHub and Azure. This means I don't need to worry about handling secrets which may expire. This allows my deployments to reliably work, whenever I want to trigger them. I need to create an App Registration that supports GitHub federated authentication, for that I am going to need to express the federated credential as a [json document](https://github.com/newmancodes/yew-countdown-solver/blob/main/deploy/credential.json) which I will supply in one of the upcoming commands. Here is an example of the credential.json file:
 
 ```json
 {
-    // redacted
-    "subject": "repo:newmancodes/yew-countdown-solver:ref:refs/heads/main",
-    // redacted
+  "name": "GitHub",
+  "issuer": "https://token.actions.githubusercontent.com",
+  "subject": "repo:newmancodes/yew-countdown-solver:ref:refs/heads/main",
+  "description": "Manages deployments of the countdown solver project from GitHub",
+  "audiences": [
+    "api://AzureADTokenExchange"
+  ]
 }
 ```
 
-This subject will allow this project's repository to authenticate with Azure as long as the context is associated with the main (default) branch. I don't envisage requiring multiple environments for this project, nor will I make use of extra branches so only allowing deployments of code that has made it into main makes sense to me. In order to associate this federated credential with the newly created App Registration, I'll execute this az command from the directory containing my `credential.json` file.
+The subject property here is pretty confusing, so warrants some explanation. This property allows me to instruct Azure to check the subject claim presented by GitHub to make sure that:
+
+- The correct repository owner is described `newmancodes`
+- The correct repository is described `yew-countdown-solver`
+- The correct branch is described `main`
+
+By configuring this subject property I can control precisely which kind of CI/CD processes can authenticate with Azure. This works because of the federated trust relationship between Azure and GitHub. If in your projects you need to apply different rules I would recommend first using the Azure Portal and experimenting with various options (especially in regards to Scope). For this project I don't feel the need to support different branches or environments so I can apply a simple "it must come from main" declaration. Now that I have the credential.json file specified I can begin to use the [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/?view=azure-cli-latest) and [GitHub CLI](https://cli.github.com/) to execute the commands required to:
+
+- Support Azure authentication from my GitHub Actions workflow
+- Create the containing Resource Group and apply Azure Deployment Stack Owner Role-Based Access Control (RBAC) Role Assignment
+- Store the required GitHub repository secrets so the [azure/login](https://github.com/marketplace/actions/azure-login) GitHub Action can attempt to authenticate
 
 ```bash
-az ad app federated-credential create --id $appId --parameters credential.json
+# Create a new app registration and extract the Application (Client Id)
+# of the application.
+appId=$(az ad app create \
+    --display-name countdown-solver-deployer \
+    --sign-in-audience AzureADMyOrg \
+    --query appId -o tsv)
+
+# Add the GitHub Action federated credential to the newly created
+# App Registration.
+az ad app federated-credential create \
+    --id $appId \
+    --parameters credential.json
+
+# Create a Service Principal associated with the new App Registration
+# to support RBAC Role Assignments.
+az ad sp create --id $appId
+
+# Create the Resource Group, I've selected westeurope as
+# Static Web Apps aren't available everywhere.
+az group create \
+    --name rg-countdown-solver \
+    --location westeurope
+
+# Create an RBAC Role Assignment that grants the Service Principal
+# the Azure Deployment Stack Owner scoped to our newly created Resource Group.
+subscriptionId=$(az account show --query id -o tsv)
+az role assignment create \
+    --assignee $appId \
+    --role "Azure Deployment Stack Owner" \
+    --scope "/subscriptions/$subscriptionId/resourceGroups/rg-countdown-solver"
+
+# Store repository level secrets using the GitHub CLI to be used
+# when authenticating with Azure.
+tenantId=$(az account show --query tenantId -o tsv) 
+gh secret set AZURE_DEPLOYMENT_APP_CLIENT_ID --body "$appId"
+gh secret set AZURE_DEPLOYMENT_APP_SUBSCRIPTION_ID --body "$subscriptionId"
+gh secret set AZURE_DEPLOYMENT_APP_TENANT_ID --body "$tenantId"
 ```
-
-Note: This can take some time to appear in the Azure Portal so don't worry if you're following along and it hasn't appeared immediately. While I wait can execute the following statements in order:
-
-- Create a Service Principal associated with my new App Registration, this is so I have a target to make Role-Based Access Control (RBAC) Role Assignments.
-  ```bash
-  az ad sp create --id $appId
-  ```
-- Create the Resource Group to contain the logical set of infrastructure necessary for this project.
-  ```bash
-  az group create --name rg-countdown-solver --location uksouth
-  ```
-- Perform the RBAC Role Assignment so that when the GitHub Actions workflow uses the `azure/login` action, it will be able to manage the Azure Deployment Stack
-  ```bash
-  subscriptionId=$(az account show --query id -o tsv) && az role assignment create --assignee $appId --role "Azure Deployment Stack Owner" --scope "/subscriptions/$subscriptionId/resourceGroups/rg-countdown-solver"
-  ```
-- Store the secrets used by the GitHub Actions workflow when authenticating with Azure. Note: I am using the [GitHub CLI](https://cli.github.com/) here.
-  ```bash
-  gh secret set AZURE_DEPLOYMENT_APP_CLIENT_ID --body "$appId"
-  ```
-  ```bash
-  gh secret set AZURE_DEPLOYMENT_APP_SUBSCRIPTION_ID --body "$subscriptionId"
-  ```
-  ```bash
-  tenantId=$(az account show --query tenantId -o tsv) && gh secret set AZURE_DEPLOYMENT_APP_TENANT_ID --body "$tenantId"
-  ```
-
-
 
 ### Security
 
