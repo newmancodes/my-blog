@@ -66,7 +66,7 @@ The subject property here is pretty confusing, so warrants some explanation. Thi
 By configuring this subject property I can control precisely which kind of CI/CD processes can authenticate with Azure. This works because of the federated trust relationship between Azure and GitHub. If in your projects you need to apply different rules I would recommend first using the Azure Portal and experimenting with various options (especially in regards to Scope). For this project I don't feel the need to support different branches or environments so I can apply a simple "it must come from main" declaration. Now that I have the credential.json file specified I can begin to use the [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/?view=azure-cli-latest) and [GitHub CLI](https://cli.github.com/) to execute the commands required to:
 
 - Support Azure authentication from my GitHub Actions workflow
-- Create the containing Resource Group and apply Azure Deployment Stack Owner Role-Based Access Control (RBAC) Role Assignment
+- Create the containing Resource Group and apply both Contributor and Azure Deployment Stack Owner Role-Based Access Control (RBAC) Role Assignments
 - Store the required GitHub repository secrets so the [azure/login](https://github.com/marketplace/actions/azure-login) GitHub Action can attempt to authenticate
 
 ```bash
@@ -94,8 +94,13 @@ az group create \
     --location westeurope
 
 # Create an RBAC Role Assignment that grants the Service Principal
-# the Azure Deployment Stack Owner scoped to our newly created Resource Group.
+# both the Contribtutor and Azure Deployment Stack Owner roles
+# scoped to our newly created Resource Group.
 subscriptionId=$(az account show --query id -o tsv)
+az role assignment create \
+    --assignee $appId \
+    --role "Contributor" \
+    --scope "/subscriptions/$subscriptionId/resourceGroups/rg-countdown-solver"
 az role assignment create \
     --assignee $appId \
     --role "Azure Deployment Stack Owner" \
