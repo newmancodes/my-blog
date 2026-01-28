@@ -2,7 +2,7 @@
 date = '2026-01-24T09:27:32Z'
 draft = true
 title = 'Public Countdown Solver'
-tags = ['programming', 'rust', 'wasm', 'artificial intelligence']
+tags = ['programming', 'rust', 'wasm', 'python', 'azure', 'github actions', 'artificial intelligence']
 ShowToc = true
 TocOpen = true
 +++
@@ -43,6 +43,8 @@ The Rust compiler can compile straight to WebAssembly when the wasm32_unknown_un
 
 My Azure setup is fairly simple, I maintain a single Subscription and I tend to deploy various elements into different resource groups for logical separation. I'll be using [Azure Deployment Stacks](https://learn.microsoft.com/en-us/training/modules/introduction-to-deployment-stacks/) for this project so that the only mechanism to make changes to my cloud infrastructure is via a deployment (using [Bicep](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/overview?tabs=bicep)), this prevents [configuration drift](https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/landing-zone/design-area/management-operational-compliance#monitor-for-configuration-drift), and also so I can easily tear down the infrastructure via an `az stack` command. If you want to learn more about Azure Deployment Stacks, John Savill posted a great [Deployment Stacks Deep Dive](https://youtu.be/d1AE8qLwBYw?si=2LJpwiXTFcFAqUv9) video to YouTube.
 
+### GitHub Actions Deployment of Azure Deployment Stack
+
 When I configure my GitHub Actions based deployments to Azure I make use of the federation setup between GitHub and Azure. This means I don't need to worry about handling secrets which may expire. This allows my deployments to reliably work, whenever I want to trigger them. I need to create an App Registration that supports GitHub federated authentication, for that I am going to need to express the federated credential as a [json document](https://github.com/newmancodes/yew-countdown-solver/blob/main/deploy/credential.json) which I will supply in one of the upcoming commands. Here is an example of the credential.json file:
 
 ```json
@@ -68,6 +70,7 @@ By configuring this subject property I can control precisely which kind of CI/CD
 - Support Azure authentication from my GitHub Actions workflow
 - Create the containing Resource Group and apply both Contributor and Azure Deployment Stack Owner Role-Based Access Control (RBAC) Role Assignments
 - Store the required GitHub repository secrets so the [azure/login](https://github.com/marketplace/actions/azure-login) GitHub Action can attempt to authenticate
+- Store the id of the service principal associated with the app registration to support future deployments
 
 ```bash
 # Create a new app registration and extract the Application (Client Id)
@@ -85,7 +88,9 @@ az ad app federated-credential create \
 
 # Create a Service Principal associated with the new App Registration
 # to support RBAC Role Assignments.
-az ad sp create --id $appId
+principalId=$(az ad sp create \
+    --id $appId \
+    --query id -o tsv)
 
 # Create the Resource Group, I've selected westeurope as
 # Static Web Apps aren't available everywhere.
@@ -112,6 +117,12 @@ tenantId=$(az account show --query tenantId -o tsv)
 gh secret set AZURE_DEPLOYMENT_APP_CLIENT_ID --body "$appId"
 gh secret set AZURE_DEPLOYMENT_APP_SUBSCRIPTION_ID --body "$subscriptionId"
 gh secret set AZURE_DEPLOYMENT_APP_TENANT_ID --body "$tenantId"
+
+# Store the service principal's Id so it can be excluded from the
+# Deployment Stack's deny settings (allowing this service principal
+# the ability to make changes to the infrastructure managed by this
+# project's stack).
+gh secret set DENY_SETTINGS_EXCLUDED_PRINCIPAL --body "$principalId"
 ```
 
 ### Security
