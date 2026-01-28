@@ -35,6 +35,10 @@ The Rust compiler can compile straight to WebAssembly when the wasm32_unknown_un
 
 ### Tailwind CSS
 
+```plaintext
+Okay. Next challenge for you. I want to render the target, numbers, and solve button in a nicer way. All the game.board().numbers() should be along side one another. I want them to be black on a white box, with a grey border. If the display is narrow (think mobile in landspace orientation) I want them to split into two rows of three, then three rows of two, then a column. There will be six numbers. The target value should be white on a blue background with a darker grey border. It should be as wide as the numbers beneath it. The solve button should be below all the numbers with some spacing and centrally aligned. I am using tailwind css and I want to use semantic html and be mindful of accessibility standards. Can you make some suggestions for us to try?
+```
+
 ## Implementing in Rust
 
 ## Playwright
