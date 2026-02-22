@@ -1,3 +1,7 @@
++++
+headless = true
++++
+
 | i | j | ithOperandValue | jthOperandValue | Operation | Next State |
 |-|-|-|-|-|-|
 | 0 | 1 | 1 | 4 | + | 4, 5, 5, 6, 50 |
