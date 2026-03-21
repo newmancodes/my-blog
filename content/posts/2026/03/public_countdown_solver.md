@@ -1,5 +1,5 @@
 +++
-date = '2026-01-24T09:27:32Z'
+date = '2026-03-17T08:27:32Z'
 draft = true
 title = 'Public Countdown Solver'
 tags = ['programming', 'rust', 'wasm', 'python', 'azure', 'github actions', 'artificial intelligence']
@@ -9,19 +9,25 @@ TocOpen = true
 
 ## Introduction
 
-In this third part of our ongoing "Countdown Numbers Round Solver" series, I'll be making the solver available for you (and others) on the Internet. This means that you'll be able to visit the [Countdown Solver](https://cds.newman.digital) and challenge yourself with random problems, or request a solution to a particular problem. Ideally I'd like to make this cost as little as possible for me, so I want to serve the solver using [Azure Static Web Apps](https://azure.microsoft.com/en-us/products/app-service/static), which means we'll need to make sure the computation involved when solving the problem happens on the user's device, not a compute element in Azure (which I'd be paying for). There are a number of options we could leverage, from any number of JavaScript UI frameworks/libraries (such as [Angular](https://angular.dev/), [React](https://react.dev/), or [Vue](https://vuejs.org/guide/introduction)) or we could use [ASP.NET Core Blazor's](https://dotnet.microsoft.com/en-us/apps/aspnet/web-apps/blazor) [WebAssembly hosting model](https://learn.microsoft.com/en-us/aspnet/core/blazor/hosting-models?view=aspnetcore-10.0#blazor-webassembly) as we already have a functioning C# implementation. Leveraging Blazor would certainly be the quickest "route to market", but let's push ourselves to do something a little more outside of our comfort zone. You can navigate to the code associated with this post at [yew-countdown-solver](https://github.com/newmancodes/yew-countdown-solver).
+In this third part of our ongoing "Countdown Numbers Round Solver" series, I'll be making the solver available for you (and others) on the Internet. This means that you'll be able to visit the solver online and challenge yourself with random problems, or request a solution to a particular problem.
 
-### AI Declaration
+I want to keep costs as low as possible, so I want to serve the solver using [Azure Static Web Apps](https://azure.microsoft.com/en-us/products/app-service/static), which means we'll need to make sure the computation involved when solving the problem happens on the user's device, not a compute element in Azure (which I'd be paying for).
 
-I have made use of multiple Generative AI solutions during this project. During the writing process I have consulted with Anthropic's Claude Sonnet 4.5 model via GitHub Copilot (in Visual Studio Code) to help me construct a good flow to the article and perform a content review. During the coding portion of the project I made use of both GitHub Copilot and Claude Code, I typically use Anthropic's Claude Sonnet 4.5 for most of my Gen-AI interactions. I use Claude Code to help me navigate issues with Rust, Yew, and Trunk. Occasionally generating plans and executing those plans (you can find these in the GitHub repo at [./.claude/plans](https://github.com/newmancodes/yew-countdown-solver/blob/main/.claude/plans)). Beyond these usages I have crafted this project by hand and enjoyed the ride. When these technologies helped me over a particular hurdle, I'll call it out below rather than leaving a bland "I prompted" and leaving it as an exercise to the reader to discover how to do that for themselves. There are a lot of people out there that are quick to comment "skill issue! you're using it wrong", but we're all learning these tools in parallel and I certainly haven't gotten this all figured out myself, let's share what's worked for us and we'll all improve together and figure out where the sharp edges are.
+There are a number of options we could leverage, from any number of JavaScript UI frameworks/libraries or we could use [ASP.NET Core Blazor's](https://dotnet.microsoft.com/en-us/apps/aspnet/web-apps/blazor) [WebAssembly hosting model](https://learn.microsoft.com/en-us/aspnet/core/blazor/hosting-models?view=aspnetcore-10.0#blazor-webassembly) as we already have a functioning C# implementation.
+
+Leveraging Blazor would certainly be the quickest "route to market", but let's push ourselves to do something a little outside our comfort zone. We're going to rewrite the iterative deepening variant using the [Rust](https://rust-lang.org/) programming language and leverage the [Yew framework](https://yew.rs/) to deliver the UI experience to our users.
+
+You can find the code associated with this post at [the GitHub repository](https://github.com/newmancodes/yew-countdown-solver) and use the solver itself at [Countdown Solver](https://cds.newman.digital).
 
 ## WebAssembly
+
+We need an option that allows the uninformed search computation to happen on the user's device, not in Azure. The best options we have for executing code on the browser are the JavaScript and WebAssembly.
 
 > WebAssembly (abbreviated Wasm) is a binary instruction format for a stack-based virtual machine. Wasm is designed as a portable compilation target for programming languages, enabling deployment on the web for client and server applications.
 >
 > -- <cite>[WebAssembly.org](https://webassembly.org/)</cite>
 
-Now, I'm not going to be programming this code in the raw binary instruction format that WebAssembly executes! This means I need to find a programming language which I can leverage and produce a WASM build artifact that can run on the virtual machine (VM). I've already mentioned C# as a possible option (via Blazor), but there are several options I could choose. I could use C, C++, Go, Python, Java, and many others, but I'm going to be using Rust for this project.
+I'm not going to be programming this code in the raw binary instruction format that WebAssembly executes! So I need to find a programming language which I can leverage to produce a WASM build artifact that can run on the virtual machine (VM). I've already mentioned C# as a possible option (via Blazor), but there are several options I could choose. I could use C, C++, Go, Python, Java, and many others, but I'm going to be using Rust for this project which has good compilation support for Wasm.
 
 ## Rust
 
@@ -29,7 +35,7 @@ Why Rust?
 
 What even is Rust?
 
-The Rust compiler can compile straight to WebAssembly when the wasm32_unknown_unknown target is added by executing the command `rustup target add wasm32-unknown-unknown`.
+The Rust compiler can compile straight to WebAssembly when the wasm32-unknown-unknown target is added by executing the command `rustup target add wasm32-unknown-unknown`.
 
 ## Yew + Trunk
 
@@ -40,6 +46,17 @@ I want to render the target, numbers, and solve button in a nicer way. All the g
 ```
 
 ## Implementing in Rust
+
+Result: No change needed — the linear scan wins
+Here's what the data told us:
+Approach	1-step	2-step	3-step	4-step	5-step	impossible
+Baseline (linear scan)	39 us	507 us	1.11 ms	5.68 ms	24.1 ms	8.20 ms
+HashSet mirror	+7%	+6%	+7%	+7%	+9%	+7%
+Drop check entirely	-10%	+49%	+41%	+3%	+12%	+25%
+Why the linear scan wins here:
+- The frontier is small — boards have at most 6 numbers, and iterative deepening limits depth to 1-6. The frontier rarely exceeds a few hundred entries.
+- At that size, a sequential scan over a contiguous Vec is cache-friendly and fast. HashSet hashing overhead (computing the hash of a Board on every insert, remove, and lookup) costs more than the scan saves.
+- Dropping the check entirely causes frontier explosion — without dedup, duplicate boards flood the frontier, each carrying a cloned StateTraversal parent chain. The cloning cost dominates.
 
 ## Playwright
 
@@ -103,7 +120,7 @@ az group create \
     --location westeurope
 
 # Create an RBAC Role Assignment that grants the Service Principal
-# both the Contribtutor and Azure Deployment Stack Owner roles
+# both the Contributor and Azure Deployment Stack Owner roles
 # scoped to our newly created Resource Group.
 subscriptionId=$(az account show --query id -o tsv)
 az role assignment create \
@@ -132,3 +149,7 @@ gh secret set DENY_SETTINGS_EXCLUDED_PRINCIPAL --body "$principalId"
 ### Security
 
 ## Conclusion
+
+### AI Declaration
+
+I have made use of multiple Generative AI solutions during this project. During the writing process I have consulted with Anthropic's Claude Sonnet 4.5 model via GitHub Copilot (in Visual Studio Code) and a custom agent in OpenCode to help me construct a good flow to the article and perform a content review. During the coding portion of the project I made use of both GitHub Copilot, Claude Code, and OpenCode. I typically use Anthropic's Claude Sonnet 4.5/6 and Claude Opus 4.6 for most of my Generative AI interactions. I use Claude Code and OpenCode to help me navigate issues with Rust, Yew, and Trunk. Occasionally generating plans and executing those plans (you can find these in the GitHub repo at [./.claude/plans](https://github.com/newmancodes/yew-countdown-solver/blob/main/.claude/plans)) or [./.opencode/plans](https://github.com/newmancodes/yew-countdown-solver/tree/main/.opencode/plans). Beyond these usages I have crafted this project by hand and enjoyed the ride. When these technologies helped me over a particular hurdle, I'll call it out below rather than leaving a bland "I prompted" and leaving it as an exercise to the reader to discover how to do that for themselves. There are a lot of people out there that are quick to comment "skill issue! you're using it wrong", but we're all learning these tools in parallel and I certainly haven't gotten this all figured out myself, let's share what's worked for us and we'll all improve together and figure out where the sharp edges are. Throughout this blog post I'll call out some specific areas where I utilised AI to good effect and I'll add a summary at the end of the post covering where I am with AI-assisted coding at this time.
