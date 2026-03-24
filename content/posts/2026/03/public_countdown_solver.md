@@ -1,5 +1,5 @@
 +++
-date = '2026-03-17T08:27:32Z'
+date = '2026-03-17T10:00:00Z'
 draft = true
 title = 'Public Countdown Solver'
 tags = ['programming', 'rust', 'wasm', 'python', 'azure', 'github actions', 'artificial intelligence']
@@ -27,7 +27,7 @@ We need an option that allows the uninformed search computation to happen on the
 >
 > -- <cite>[WebAssembly.org](https://webassembly.org/)</cite>
 
-I'm not going to be programming this code in the raw binary instruction format that WebAssembly executes! So I need to find a programming language which I can leverage to produce a WASM build artifact that can run on the virtual machine (VM). I've already mentioned C# as a possible option (via Blazor), but there are several options I could choose. I could use C, C++, Go, Python, Java, and many others, but I'm going to be using Rust for this project which has good compilation support for Wasm.
+I'm not going to be programming this code in the raw binary instruction format that WebAssembly executes! So I need to find a programming language which I can leverage to produce a WASM build artifact that can run on the stacked-based virtual machine (VM) described by Wasm. I've already mentioned C# as a possibility (via Blazor), but there are several options I could choose. I could use C, C++, Go, Python, Java, and many others, but I'm going to be using Rust for this project which has good compilation support for Wasm.
 
 ## Rust
 
