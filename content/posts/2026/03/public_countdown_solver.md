@@ -21,7 +21,7 @@ You can find the code associated with this post at [the GitHub repository](https
 
 ## WebAssembly
 
-We need an option that allows the uninformed search computation to happen on the user's device, not in Azure. The best options we have for executing code on the browser are the JavaScript and WebAssembly.
+We need an option that allows the uninformed search computation to happen on the user's device, not in Azure. The best options we have for executing code on the browser are JavaScript and WebAssembly.
 
 > WebAssembly (abbreviated Wasm) is a binary instruction format for a stack-based virtual machine. Wasm is designed as a portable compilation target for programming languages, enabling deployment on the web for client and server applications.
 >
@@ -31,11 +31,135 @@ I'm not going to be programming this code in the raw binary instruction format t
 
 ## Rust
 
-Why Rust?
+Rust is a programming language which many people first encounter through the [Stack Overflow Developer Survey results](https://survey.stackoverflow.co/2025/technology#2-programming-scripting-and-markup-languages). Rust has long been the most admired language on the survey and with Micosoft's Mark Russinovich [pushing for Rust](https://www.youtube.com/watch?v=1VgptLwP588) as the alternative to C and C++ when a runtime can't be tolerated. C# is great but when working in performance or safety critical domains, it might not be enough. As I started experimenting with the Rust programming language, these were the things that I particularly enjoyed:
 
-What even is Rust?
+### Immutability by default
 
-The Rust compiler can compile straight to WebAssembly when the wasm32-unknown-unknown target is added by executing the command `rustup target add wasm32-unknown-unknown`.
+I have a strong preference for immutability in my software solutions, simply because if an `object` or `data structure` is immutable I know it can be safely shared between multiple threads. There is a really good talk [Refactoring to Immutability – Kevlin Henney](https://www.youtube.com/watch?v=APUCMSPiNh4) which goes into more detail. By default, whenever you create a varable it is created as an immutable variable and, as such, cannot be changed.
+
+```rust
+fn main() {
+    let age = 21;
+    age = age + 1;
+    
+    println!("Your age is {age}.");
+}
+```
+
+When I try to compile this code, I get this error message. It clearly informs me that the `age` variable is immutable, points me at the line where the mutation is attempted, 
+
+```bash
+error[E0384]: cannot assign twice to immutable variable `age`
+ --> src/main.rs:3:5
+  |
+2 |     let age = 21;
+  |         --- first assignment to `age`
+3 |     age = age + 1;
+  |     ^^^^^^^^^^^^^ cannot assign twice to immutable variable
+  |
+help: consider making this binding mutable
+  |
+2 |     let mut age = 21;
+  |         +++
+
+For more information about this error, try `rustc --explain E0384`.
+```
+
+### An Ecosystem that Teaches
+
+As you can see in the above error message, the compiler not only endeavours to highlight the problem but signals what could fix it and also signposts you as the developer to other resources to help solve the problem.
+
+```rust
+fn main() {
+    let mut age = 21;
+    age = age + 1;
+    
+    println!("Your age is {age}.");
+}    
+```
+
+Now, when we compile and execute this code, we receive the expected output.
+
+```bash
+Your age is 22.
+```
+
+This goes beyound just the compiler, [cargo](https://doc.rust-lang.org/cargo/) includes a number of useful commands such as [cargo clippy](https://doc.rust-lang.org/clippy/index.html) which offers over 800 lints targetting common mistakes. Guiding you to become a better Rustacean! The tooling is there to help guide, correct, and educate you as you progress with your Rust learning experience.
+
+### Type System
+
+Rust features an algebraic data type system comprised of: "sum types", achieved by creating `enum`s; "product types", which are expressed using `struct` or Tuples. A "sum type" expresses a number of options, they are sometimes also refered to as "or types" as a valid value can be x or y or z. Values can also contain data. A "product type" works by multiplying or and-ing types together. This is closer to a traditional class in an OOP language.
+
+```rust
+// A "sum type" that defines the possible Operators that can be used. A valid value of this type can be any one of these possibilites.
+pub enum Operator {
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
+}
+
+// A "product type" that defines a Operation, it is comprised of two operands (named left and right), the Operator, and the result.
+pub struct Operation {
+    pub left: u32,
+    pub operator: Operator,
+    pub right: u32,
+    pub result: u32,
+}
+```
+
+Common enums used within Rust code are the `Option<T>` and `Result<T, E>` types which model the possibilty of a value existing or not. The `Option<T>` type can be `None`, when a value is not present, or `Some<T>` when a value is present. Pattern matching is utilised to ensure all cases are handled all the time. The `Option<T>` type means that we don't have to struggle with `null` or `nil` values. Similarly `Result<T, E>` allows us to signal if a function could fail, rather than using Exceptions like C#, we return an instance of E for Errors or the successful value T. Again pattern matching makes sure we handle all the cases.
+
+```rust
+pub enum Operator {
+    Add,
+    Subtract,
+    Multiply,
+    Divide
+}
+
+pub fn calculate(left: u32, operator: Operator, right: u32) -> Result<u32, &'static str> {
+    match operator {
+        Operator::Add => Ok(left + right),
+        Operator::Subtract => Ok(left - right),
+        Operator::Multiply => Ok(left * right),
+        Operator::Divide if right == 0 => Err("Divide by zero")
+    }
+}
+```
+
+If we fail to handle a case, the compiler will refuse to compile and will instead return an error.
+
+```bash
+error[E0004]: non-exhaustive patterns: `Operator::Divide` not covered
+  --> src/main.rs:9:11
+   |
+ 9 |     match operator {
+   |           ^^^^^^^^ pattern `Operator::Divide` not covered
+   |
+note: `Operator` defined here
+  --> src/main.rs:1:10
+   |
+ 1 | pub enum Operator {
+   |          ^^^^^^^^
+...
+ 5 |     Divide
+   |     ------ not covered
+   = note: the matched value is of type `Operator`
+help: ensure that all possible cases are being handled by adding a match arm with a wildcard pattern or an explicit pattern as shown
+   |
+13 ~         Operator::Divide if right == 0 => Err("Divide by zero"),
+14 +         Operator::Divide => todo!()
+   |
+
+For more information about this error, try `rustc --explain E0004`
+```
+
+The beauty of Rust's type system is that it helps to prevent illegal states from ever being constructed, and ensures we handle all the possible states that can be encountered.
+
+### WebAssembly Support
+
+The Rust compiler can compile to WebAssembly when the appropriate target is added by executing the command `rustup target add wasm32-unknown-unknown`. But having support for Wasm is only part of the story, I need to track down a web application framework I make use of to actually build the application.
 
 ## Yew + Trunk
 
