@@ -15,7 +15,7 @@ I want to keep costs as low as possible, so I want to serve the solver using [Az
 
 There are a number of options we could leverage, from any number of JavaScript UI frameworks/libraries or we could use [ASP.NET Core Blazor's](https://dotnet.microsoft.com/en-us/apps/aspnet/web-apps/blazor) [WebAssembly hosting model](https://learn.microsoft.com/en-us/aspnet/core/blazor/hosting-models?view=aspnetcore-10.0#blazor-webassembly) as we already have a functioning C# implementation.
 
-Leveraging Blazor would certainly be the quickest "route to market", but let's push ourselves to do something a little outside our comfort zone. We're going to rewrite the iterative deepening variant using the [Rust](https://rust-lang.org/) programming language and leverage the [Yew framework](https://yew.rs/) to deliver the UI experience to our users.
+Leveraging Blazor would certainly be the quickest "route to market" for me, but let's push ourselves to do something a little outside our comfort zone. We're going to rewrite the iterative deepening variant using the [Rust](https://rust-lang.org/) programming language and leverage the [Yew framework](https://yew.rs/) to deliver the UI experience to our users. We'll then make use of [Playwright](https://playwright.dev/) to add some end-to-end tests that drive a headless web browser to make sure everything keeps working. Sadly, we can't use Rust for this, so we'll make use of Python instead. Finally, we'll wrap this all up with CI/CD automation with [GitHub Actions](https://github.com/features/actions) do deploy the application automatically to an [Azure Static Web App](https://azure.microsoft.com/en-us/products/app-service/static) using [Bicep](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/overview?tabs=bicep) and [Azure Deployment Stacks](https://learn.microsoft.com/en-us/training/modules/introduction-to-deployment-stacks/2-what-deployment-stacks). Along the way, we'll learn more about Rust, leverage AI coding assisstants and make sure we think about security.
 
 You can find the code associated with this post at [the GitHub repository](https://github.com/newmancodes/yew-countdown-solver) and use the solver itself at [Countdown Solver](https://cds.newman.digital).
 
@@ -33,9 +33,9 @@ I'm not going to be programming this code in the raw binary instruction format t
 
 Rust is a programming language which many people first encounter through the [Stack Overflow Developer Survey results](https://survey.stackoverflow.co/2025/technology#2-programming-scripting-and-markup-languages). Rust has long been the most admired language on the survey and with Micosoft's Mark Russinovich [pushing for Rust](https://www.youtube.com/watch?v=1VgptLwP588) as the alternative to C and C++ when a runtime can't be tolerated. C# is great but when working in performance or safety critical domains, it might not be enough. As I started experimenting with the Rust programming language, these were the things that I particularly enjoyed:
 
-### Immutability by default
+### Immutability by Default
 
-I have a strong preference for immutability in my software solutions, simply because if an `object` or `data structure` is immutable I know it can be safely shared between multiple threads. There is a really good talk [Refactoring to Immutability – Kevlin Henney](https://www.youtube.com/watch?v=APUCMSPiNh4) which goes into more detail. By default, whenever you create a varable it is created as an immutable variable and, as such, cannot be changed.
+I have a strong preference for immutability in my software solutions, simply because if an `object` or `data structure` is immutable I know it can be safely shared between multiple threads. There is a really good talk [Refactoring to Immutability – Kevlin Henney](https://www.youtube.com/watch?v=APUCMSPiNh4) which goes into more detail wound why these ideas are desirable. I find that these properties help not only when dealing with concurrent processes, but also in communicating the intent of data structures.
 
 ```rust
 fn main() {
@@ -88,7 +88,7 @@ This goes beyound just the compiler, [cargo](https://doc.rust-lang.org/cargo/) i
 
 ### Type System
 
-Rust features an algebraic data type system comprised of: "sum types", achieved by creating `enum`s; "product types", which are expressed using `struct` or Tuples. A "sum type" expresses a number of options, they are sometimes also refered to as "or types" as a valid value can be x or y or z. Values can also contain data. A "product type" works by multiplying or and-ing types together. This is closer to a traditional class in an OOP language.
+Rust features an algebraic data type system comprised of: "sum types", achieved by creating `enum`s; "product types", which are expressed using `struct` or Tuples. A "sum type" expresses a number of options of which an instance of such a type can be one of those options. Sum types are sometimes also refered to as "or types" as a valid value can be x or y or z. Values can also contain data, resulting in tagged unions. A "product type" works by multiplying by and-ing types together, the "product type" is composed of a number of other types and an instance of the type contains a value for each elemtents of the composition, x and y and z. This is closer to a traditional class in an OOP language such as C# and Java. After many years, the ability to model our types in this way is finally coming in [C#](https://devblogs.microsoft.com/dotnet/csharp-15-union-types/) - I cannot wait!
 
 ```rust
 // A "sum type" that defines the possible Operators that can be used. A valid value of this type can be any one of these possibilites.
@@ -271,6 +271,25 @@ gh secret set DENY_SETTINGS_EXCLUDED_PRINCIPAL --body "$principalId"
 ```
 
 ### Security
+
+## Comparing with .NET (C#)
+
+| Configuration | C# Breadth-First | C# Depth-First | C# Iterative Deepening | Rust Iterative Deepening |
+|-|-|-|-|-|
+| Already Solved | 100% | 99.50% | 109.88% | 56.20% |
+| Easy | 100% | 21.32% | 14.08% | 3.03% |
+| Medium | 100% | 0.33% | 1.16% | 0.21% |
+| Hard | 100% | 0.22% | 1.22% | 0.16% |
+| Impossible | 100% | 9.25% | 20.66% | 2.49% |
+
+| Configuration | C# | Rust |
+|-|-|-|
+| Already Solved | 100% | 51.14% |
+| Easy | 100% | 21.52% |
+| Medium | 100% | 18.33% |
+| Hard | 100% | 12.96% |
+| Impossible | 100% | 12.03% |
+
 
 ## Conclusion
 
